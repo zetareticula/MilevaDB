@@ -12,7 +12,7 @@
 // limitations under the License.
 
 
-package ast
+package milevadb
 
 // MySQL error code.
 // This value is numeric. It is not portable to other database systems.

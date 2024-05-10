@@ -12,9 +12,13 @@
 // limitations under the License.
 
 
-package query
+package milevadb
 
-import "unicode"
+import (
+	"unicode"
+	"unicode/utf8"
+	
+)
 
 //charset to collationID
 func CharsetNameToID(charset string) uint8 {
