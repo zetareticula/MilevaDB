@@ -11,23 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
-
-import (
-	"context"
-	"encoding/json"
-	"flag"
-	"fmt"
-	"log"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
-	"text/template"
-	"time"
-
-	"github.com/BurntSushi/toml"
-)
+package milevadb
 
 var (
 	pkgDir string
@@ -35,9 +19,11 @@ var (
 )
 
 const codeTemplate = `
-package main
+
 
 import (
+
+	"
 	"github.com/whtcorpsinc/milevadb/plugin"
 	"github.com/whtcorpsinc/milevadb/stochastikctx/variable"
 )
