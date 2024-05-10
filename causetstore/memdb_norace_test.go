@@ -14,12 +14,15 @@ MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, J
 //go:build !race
 // +build !race
 
-package MilevaDB
+package milevadb
 
 import (
+	"hash"
+	"hash/crc32"
+	"math"
+	"math/bits"
 	"encoding/binary"
 	"math/rand"
-
 	. "github.com/whtcorpsinc/check"
 	"github.com/whtcorpsinc/goleveldb/leveldb/comparer"
 	leveldb "github.com/whtcorpsinc/goleveldb/leveldb/memdb"
@@ -138,3 +141,5 @@ func (s testMemDBSuite) testRandomDeriveRecur(c *C, EDB *memdb, golden *leveldb.
 
 	return opLog
 }
+
+
