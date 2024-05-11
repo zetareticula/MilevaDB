@@ -11,12 +11,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ast
+package milevadb
 
 import (
-	"strconv"
-
 	"github.com/whtcorpsinc/MilevaDB-Prod/errors"
+	"strconv"
 )
 
 var (

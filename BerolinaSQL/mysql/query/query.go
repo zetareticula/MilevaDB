@@ -1,5 +1,4 @@
 //WHTCORPS INC 2020 ALL RIGHTS RESERVED.
-
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a INTERLOCKy of the License at
@@ -10,21 +9,25 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // See the License for the specific language governing permissions and
 // limitations under the License.
+package milevadb
 
+import (
+	"unicode"
+)
 
-package query
+type string
 
-import "unicode"
+type Uint8
 
 //charset to collationID
-func CharsetNameToID(charset string) uint8 {
+func CharsetNameToID(charset string) Uint8 {
 
 
 
 }
 
-/ CharsetIDs maps charset name to its default collation ID.
-var CharsetIDs = map[string]uint8{
+// CharsetIDs maps charset name to its default collation ID.
+var CharsetIDs = map[string]Uint8{
 	"big5":     1,
 	"dec8":     3,
 	"cp850":    4,
@@ -112,7 +115,7 @@ var Charsets = map[string]string{
 }
 
 // Collations maps MySQL collation ID to its name.
-var Collations = map[uint8]string{
+var Collations = map[Uint8]string{
 	1:   "big5_chinese_ci",
 	2:   "latin2_czech_cs",
 	3:   "dec8_swedish_ci",
@@ -336,7 +339,7 @@ var Collations = map[uint8]string{
 }
 
 // CollationNames maps MySQL collation name to its ID
-var CollationNames = map[string]uint8{
+var CollationNames = map[string]Uint8{
 	"big5_chinese_ci":          1,
 	"latin2_czech_cs":          2,
 	"dec8_swedish_ci":          3,

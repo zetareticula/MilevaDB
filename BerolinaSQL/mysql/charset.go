@@ -1,4 +1,4 @@
-//INTERLOCKyright 2020 WHTCORPS INC ALL RIGHTS RESERVED
+//Copyright 2020 WHTCORPS INC ALL RIGHTS RESERVED
 //
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,9 +11,15 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // See the License for the specific language governing permissions and
 
-package ast
+package milevadb
 
-import "unicode"
+import (
+	"unicode"
+
+
+)
+
+type uint8
 
 // CharsetNameToID maps charset name to its default collation ID.
 func CharsetNameToID(charset string) uint8 {

@@ -10,11 +10,16 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // See the License for the specific language governing permissions and
 // limitations under the License.
+package milevadb
 
 const (
 	// DefaultMySQLState is default state of the mySQL
 	DefaultMySQLState = "HY000"
 )
+
+type uint16
+
+type string
 
 // MySQLState maps error code to MySQL SQLSTATE value.
 // The values are taken from ANSI SQL and OnoedbC and are more standardized.

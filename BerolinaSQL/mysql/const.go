@@ -11,11 +11,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ast
+package milevadb
 
 import (
 	"fmt"
 	"strings"
+
 )
 
 func newInvalidModeErr(s string) error {
@@ -199,19 +200,17 @@ const (
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mysql
+package milevadb
 
 import (
 	"fmt"
 	"strings"
-
 	"github.com/pingcap/errors"
 	. "github.com/pingcap/parser/format"
+
 )
 
-func newInvalidModeErr(s string) error {
-	return NewErr(ErrWrongValueForVar, "sql_mode", s)
-}
+
 
 // Version information.
 var (
