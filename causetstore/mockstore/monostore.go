@@ -11,9 +11,10 @@ MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, J
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mockstore
+package milevadb
 
 import (
+	"github.com/whtcorpsinc/MilevaDB-Prod/causetstore"
 	"github.com/whtcorpsinc/MilevaDB-Prod/causetstore/einsteindb"
 	"github.com/whtcorpsinc/MilevaDB-Prod/causetstore/mockstore/entangledstore"
 	"github.com/whtcorpsinc/MilevaDB-Prod/solomonkey"
@@ -29,3 +30,5 @@ func newEntangledStore(opts *mockOptions) (solomonkey.CausetStorage, error) {
 
 	return einsteindb.NewTestEinsteinDBStore(client, FIDelClient, opts.clientHijacker, opts.FIDelClientHijacker, opts.txnLocalLatches)
 }
+
+

@@ -12,6 +12,8 @@
 // limitations under the License.
 package milevadb
 
+package milevadb
+
 const (
 	// DefaultMySQLState is default state of the mySQL
 	DefaultMySQLState = "HY000"

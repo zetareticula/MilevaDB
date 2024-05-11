@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package MilevaDB
+package milevadb
 
 import (
 	"container/heap"
@@ -20,6 +20,7 @@ import (
 	"github.com/whtcorpsinc/MilevaDB-Prod/stochastikctx/stmtctx"
 	"github.com/whtcorpsinc/MilevaDB-Prod/types"
 	fidelpb "github.com/whtcorpsinc/fidelpb/go-fidelpb"
+
 )
 
 type sortRow struct {
@@ -137,3 +138,65 @@ func (t *topNHeap) tryToAddRow(event *sortRow) bool {
 	}
 	return success
 }
+
+
+// topN implements the top n algorithm.
+// It will sort the data in heap structure and return the top n elements.
+func topN(sc *stmtctx.StatementContext, orderByItems []*fidelpb.ByItem, rows [][]types.Causet, limit int) ([]*sortRow, error) {
+	heapSize := limit
+	if len(rows) < limit {
+		heapSize = len(rows)
+	}
+	t := &topNHeap{
+		topNSorter: topNSorter{
+			orderByItems: orderByItems,
+			rows:         make([]*sortRow, 0, heapSize),
+			sc:           sc,
+		},
+		totalCount: heapSize,
+		heapSize:   0,
+	}
+	heap.Init(t)
+	for _, row := range rows {
+		if len(row) != len(orderByItems) {
+			return nil, errors.New("row length is not equal to order by items length")
+		}
+		event := &sortRow{
+			key:  row,
+			data: nil,
+		}
+		if !t.tryToAddRow(event) {
+			break
+		}
+	}
+	if t.err != nil {
+		return nil, errors.Trace(t.err)
+	}
+	return t.rows, nil
+}
+
+
+// SortData implements the sort algorithm.
+func SortData(sc *stmtctx.StatementContext, orderByItems []*fidelpb.ByItem, rows [][]types.Causet) ([]*sortRow, error) {
+	t := &topNSorter{
+		orderByItems: orderByItems,
+		rows:         make([]*sortRow, 0, len(rows)),
+		sc:           sc,
+	}
+	for _, row := range rows {
+		if len(row) != len(orderByItems) {
+			return nil, errors.New("row length is not equal to order by items length")
+		}
+		event := &sortRow{
+			key:  row,
+			data: nil,
+		}
+		t.rows = append(t.rows, event)
+	}
+	if t.err != nil {
+		return nil, errors.Trace(t.err)
+	}
+	heap.Init(t)
+	return t.rows, nil
+}
+
