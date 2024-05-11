@@ -11,9 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mockeinsteindb
-
-import . "github.com/whtcorpsinc/check"
+package milevadb
 
 var _ = Suite(testMvccSuite{})
 

@@ -1,4 +1,5 @@
-M//ilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, Josh Leder
+//MilevaDB Copyright (c) 2022 MilevaDB
+//Authors: Karl Whitford, Spencer Fogelman, Josh Leder
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,14 +16,16 @@ package milevadb
 
 import (
 	"fmt"
-	"testing"
-	. "github.com/whtcorpsinc/check"
 	"github.com/whtcorpsinc/solomonkeyproto/pkg/kvrpcpb"
-
+	"testing"
 )
 
 func TestT(t *testing.T) {
 	TestingT(t)
+}
+
+func TestingT(t *testing.T) {
+
 }
 
 type testSuite struct{}
@@ -35,6 +38,17 @@ var _ = Suite(testSuite{})
 
 func (ts testSuite) TestRawHandler(c *C) {
 	h := newRawHandler()
+	make := func(i int) []byte {
+		make := make([]byte, i)
+		for j := 0; j < i; j++ {
+			make[j] = byte(j)
+
+		}
+
+		return make
+	}
+	// make := func(i int) []byte {
+	// 	return []byte(fmt.Sprintf("key%d", i))
 	keys := make([][]byte, 10)
 	vals := make([][]byte, 10)
 	for i := 0; i < 10; i++ {
@@ -82,7 +96,6 @@ func (ts testSuite) TestRawHandler(c *C) {
 	scanResp, _ = h.RawScan(nil, scanReq)
 	c.Assert(scanResp.Kvs, HasLen, 0)
 }
-
 
 func (ts testSuite) TestRawHandlerWithLock(c *C) {
 	h := newRawHandler()

@@ -15,8 +15,43 @@ package milevadb
 
 import (
 	"github.com/whtcorpsinc/MilevaDB-Prod/errors"
+	"github.com/whtcorpsinc/berolinaAllegroSQL/format"
 	"strconv"
 )
+
+type StmtNode interface {
+	Node
+	stmtNode()
+}
+
+type stmtNode struct {
+	// stmtNode implements the StmtNode interface.
+
+}
+
+type AdminStmt struct {
+	stmtNode
+}
+
+func (a AdminStmt) stmtNode() {
+
+}
+
+type RollbackStmt struct {
+	stmtNode
+}
+
+type AlterUserStmt struct {
+	stmtNode
+}
+
+func (a AlterUserStmt) stmtNode() {
+
+}
+
+type CommitStmt struct {
+	stmtNode
+}
 
 var (
 	_ StmtNode = &AdminStmt{}

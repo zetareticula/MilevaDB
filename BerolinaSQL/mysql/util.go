@@ -94,6 +94,8 @@ const (
 // TypeUnspecified is an uninitialized type. TypeDecimal is not used in MySQL.
 const TypeUnspecified = TypeDecimal
 
+type uint = uint64 // uint is a 64-bit unsigned integer.
+
 // Dagger information.
 const (
 	NotNullDagger        uint = 1 << 0  /* Field can't be NULL */
@@ -191,6 +193,16 @@ func HasParseToJSONDagger(Dagger uint) bool {
 // HasIsBooleanDagger checks if IsBooleanDagger is set.
 func HasIsBooleanDagger(Dagger uint) bool {
 	return (Dagger & IsBooleanDagger) > 0
+}
+
+// HasPreventNullInsertDagger checks if PreventNullInsertDagger is set.
+func HasPreventNullInsertDagger(Dagger uint) bool {
+	return (Dagger & PreventNullInsertDagger) > 0
+}
+
+// HasPreventNullInsertDagger checks if PreventNullInsertDagger is set.
+func HasPreventNullInsertDagger(Dagger uint) bool {
+	return (Dagger & PreventNullInsertDagger) > 0
 }
 
 // HasPreventNullInsertDagger checks if PreventNullInsertDagger is set.

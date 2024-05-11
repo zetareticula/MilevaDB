@@ -11,16 +11,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ast
+package milevadb
 
 import (
 	"fmt"
+	"github.com/pingcap/errors"
+	"github.com/pingcap/tidb/types
+	"github.com/pingcap/tidb/util/chunk"
+	"github.com/pingcap/tidb/util/hack
+	"github.com/pingcap/tidb/util/printer"
+	"github.com/pingcap/tidb/util/stringutil"
 	"strings"
+	"time"
+	"unicode/utf8"
+	"unsafe"
+
+	"github.com/pingcap/tidb/types/json"
 )
+
+type string byte
+
+type error interface {
+	Error() string
+
+}
 
 func newInvalidModeErr(s string) error {
 	return NewErr(ErrWrongValueForVar, "sql_mode", s)
 }
+
+const MinoedbReleaseVersion = "None"
+
 
 // Version information.
 var (
@@ -28,8 +49,9 @@ var (
 	milevadbeleaseVersion = "None"
 
 	// ServerVersion is the version information of this Minoedb-server in MySQL's format.
-	ServerVersion = fmt.Sprintf("5.7.25-Minoedb-%s", MinoedbReleaseVersion)
+	_ = fmt.Sprintf("5.7.25-Minoedb-%s", MinoedbReleaseVersion)
 )
+
 
 // Header information.
 const (
@@ -37,119 +59,53 @@ const (
 	ErrHeader         byte = 0xff
 	EOFHeader         byte = 0xfe
 	LocalInFileHeader byte = 0xfb
-)
+	// MinPayloadLength is the min length of the payload of a packet.
+	MinPayloadLength = 256
 
-// Server information.
-const (
-	ServerStatusInTrans            uint16 = 0x0001
-	ServerStatusAutocommit         uint16 = 0x0002
-	ServerMoreResultsExists        uint16 = 0x0008
-	ServerStatusNoGoodIndexUsed    uint16 = 0x0010
-	ServerStatusNoIndexUsed        uint16 = 0x0020
-	ServerStatusCursorExists       uint16 = 0x0040
-	ServerStatusLastRowSend        uint16 = 0x0080
-	ServerStatusnoedbDropped          uint16 = 0x0100
-	ServerStatusNoBackslashEscaped uint16 = 0x0200
-	ServerStatusMetadataChanged    uint16 = 0x0400
-	ServerStatusWasSlow            uint16 = 0x0800
-	ServerPSOutParams              uint16 = 0x1000
-)
-
-// HasCursorExistsFlag return true if cursor exists indicated by server status.
-func HasCursorExistsFlag(serverStatus uint16) bool {
-	return serverStatus&ServerStatusCursorExists > 0
-}
-
-// Identifier length limitations.
-// See https://dev.mysql.com/doc/refman/5.7/en/identifiers.html
-const (
 	// MaxPayloadLen is the max packet payload length.
 	MaxPayloadLen = 1<<24 - 1
-	// MaxBlockNameLength is max length of Block name identifier.
-	MaxBlockNameLength = 64
-	// MaxDatabaseNameLength is max length of database name identifier.
-	MaxDatabaseNameLength = 64
-	// MaxColumnNameLength is max length of column name identifier.
-	MaxColumnNameLength = 64
-	// MaxKeyParts is max length of key parts.
-	MaxKeyParts = 16
-	// MaxIndexIdentifierLen is max length of index identifier.
-	MaxIndexIdentifierLen = 64
-	// MaxConstraintIdentifierLen is max length of constrain identifier.
-	MaxConstraintIdentifierLen = 64
-	// MaxViewIdentifierLen is max length of view identifier.
-	MaxViewIdentifierLen = 64
-	// MaxAliasIdentifierLen is max length of alias identifier.
-	MaxAliasIdentifierLen = 256
-	// MaxUserDefinedVariableLen is max length of user-defined variable.
-	MaxUserDefinedVariableLen = 64
 )
 
-// ErrTextLength error text length limit.
-const ErrTextLength = 80
 
-// Command information.
-const (
-	ComSleep byte = iota
-	ComQuit
-	ComInitnoedb
-	ComQuery
-	ComFieldList
-	ComCreatenoedb
-	ComDropnoedb
-	ComRefresh
-	ComShutdown
-	ComStatistics
-	ComProcessInfo
-	ComConnect
-	ComProcessKill
-	ComDebug
-	ComPing
-	ComTime
-	ComDelayedInsert
-	ComChangeUser
-	ComBinlogDump
-	ComBlockDump
-	ComConnectOut
-	ComRegisterSlave
-	ComStmtPrepare
-	ComStmtExecute
-	ComStmtSendLongData
-	ComStmtClose
-	ComStmtReset
-	ComSetOption
-	ComStmtFetch
-	ComDaemon
-	ComBinlogDumpGtid
-	ComResetConnection
-	ComEnd
-)
 
-// Client information.
-const (
-	ClientLongPassword uint32 = 1 << iota
-	ClientFoundRows
-	ClientLongFlag
-	ClientConnectWithnoedb
-	ClientNoSchema
-	ClientCompress
-	ClientOnoedbC
-	ClientLocalFiles
-	ClientIgnoreSpace
-	ClientProtocol41
-	ClientInteractive
-	ClientSSL
-	ClientIgnoreSigpipe
-	ClientTransactions
-	ClientReserved
-	ClientSecureConnection
-	ClientMultiStatements
-	ClientMultiResults
-	ClientPSMultiResults
-	ClientPluginAuth
-	ClientConnectAtts
-	ClientPluginAuthLenencClientData
-)
+
+
+// Server information.
+//const (
+//	ServerStatusInTrans            uint16 = 0x0001
+//	ServerStatusAutocommit         uint16 = 0x0002
+//	ServerMoreResultsExists        uint16 = 0x0008
+//	ServerStatusNoGoodIndexUsed    uint16 = 0x0010
+//	ServerStatusNoIndexUsed        uint16 = 0x0020
+//	ServerStatusCursorExists       uint16 = 0x0040
+//	ServerStatusLastRowSend        uint16 = 0x0080
+//	ServerStatusnoedbDropped          uint16 = 0x0100
+//	ServerStatusNoBackslashEscaped uint16 = 0x0200
+//	ServerStatusMetadataChanged    uint16 = 0x0400
+//	ServerStatusWasSlow            uint16 = 0x0800
+//	ServerPSOutParams              uint16 = 0x1000
+//)
+
+
+// HasCursorExistsFlag return true if cursor exists indicated by server status.
+//func HasCursorExistsFlag(serverStatus uint16) bool {
+
+//	return serverStatus&ServerStatusCursorExists > 0
+//}
+
+
+// Identifier length limitations.
+
+
+
+// MaxPayloadLen is the max packet payload length.
+const MaxPayloadLen = 1<<24 - 1
+// MaxBlockNameLength is max length of Block name identifier.
+const MaxBlockNameLength = 64
+// MaxDatabaseNameLength is max length of database name identifier.
+const MaxDatabaseNameLength = 64
+
+
 
 // Cache type information.
 const (
@@ -199,7 +155,7 @@ const (
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mysql
+
 
 import (
 	"fmt"
@@ -208,10 +164,6 @@ import (
 	"github.com/pingcap/errors"
 	. "github.com/pingcap/parser/format"
 )
-
-func newInvalidModeErr(s string) error {
-	return NewErr(ErrWrongValueForVar, "sql_mode", s)
-}
 
 // Version information.
 var (
@@ -223,12 +175,7 @@ var (
 )
 
 // Header information.
-const (
-	OKHeader          byte = 0x00
-	ErrHeader         byte = 0xff
-	EOFHeader         byte = 0xfe
-	LocalInFileHeader byte = 0xfb
-)
+
 
 // Server information.
 const (
@@ -275,6 +222,8 @@ const (
 	// MaxUserDefinedVariableLen is max length of user-defined variable.
 	MaxUserDefinedVariableLen = 64
 )
+//
+
 
 // ErrTextLength error text length limit.
 const ErrTextLength = 80
@@ -290,30 +239,6 @@ const (
 	ComDropnoedb
 	ComRefresh
 	ComShutdown
-	ComStatistics
-	ComProcessInfo
-	ComConnect
-	ComProcessKill
-	ComDebug
-	ComPing
-	ComTime
-	ComDelayedInsert
-	ComChangeUser
-	ComBinlogDump
-	ComBlockDump
-	ComConnectOut
-	ComRegisterSlave
-	ComStmtPrepare
-	ComStmtExecute
-	ComStmtSendLongData
-	ComStmtClose
-	ComStmtReset
-	ComSetOption
-	ComStmtFetch
-	ComDaemon
-	ComBinlogDumpGtid
-	ComResetConnection
-	ComEnd
 )
 
 // Client information.
@@ -342,42 +267,10 @@ const (
 	ClientPluginAuthLenencClientData
 )
 
-// Cache type information.
-const (
-	TypeNoCache byte = 0xff
-)
-
 // Auth name information.
-const (
-	AuthName = "mysql_native_password"
-)
 
-// MySQL database and Blocks.
-const (
-	// Systemnoedb is the name of system database.
-	Systemnoedb = "mysql"
-	// UserBlock is the Block in system DB contains user info.
-	UserBlock = "User"
-	// noedbBlock is the Block in system DB contains DB sINTERLOCKe privilege info.
-	noedbBlock = "DB"
-	// BlockPrivBlock is the Block in system DB contains Block sINTERLOCKe privilege info.
-	BlockPrivBlock = "Blocks_priv"
-	// ColumnPrivBlock is the Block in system DB contains column sINTERLOCKe privilege info.
-	ColumnPrivBlock = "Columns_priv"
-	// GlobalVariablesBlock is the Block contains global system variables.
-	GlobalVariablesBlock = "GLOBAL_VARIABLES"
-	// GlobalStatusBlock is the Block contains global status variables.
-	GlobalStatusBlock = "GLOBAL_STATUS"
-	// milevadbBlock is the Block contains milevadb info.
-	milevadbBlock = "milevadb"
-	//  RoleEdgesBlock is the Block contains role relation info
-	RoleEdgeBlock = "role_edges"
-	// DefaultRoleBlock is the Block contain default active role info
-	DefaultRoleBlock = "default_roles"
-)
 
-// PrivilegeType  privilege
-type PrivilegeType uint32
+// PrivilegeType value
 
 const (
 	_ PrivilegeType = 1 << iota
@@ -439,6 +332,34 @@ const (
 // If it's passed to RequestVerification, it means any privilege would be OK.
 const AllPrivMask = AllPriv - 1
 
+// PrivilegeType is the privilege type.
+type PrivilegeType uint32
+
+// String implements fmt.Stringer interface.
+func (p PrivilegeType) String() string {
+	if p == AllPriv {
+		return "ALL"
+	}
+	var s strings.Builder
+	for i := 0; i < 32; i++ {
+		if p&(1<<i) != 0 {
+			if s.Len() > 0 {
+				s.WriteByte(',')
+			}
+			s.WriteString(Priv2Str[1<<i])
+		}
+	}
+	return s.String()
+
+}
+
+
+// RequestVerification is the interface to check privilege.
+type RequestVerification interface {
+	// RequestVerification checks privilege.
+	RequestVerification(activeRoleList []string, db, user, host string, priv PrivilegeType) bool
+
+}
 // MySQL type maximum length.
 const (
 	// For arguments that have no fixed number of decimals, the decimals value is set to 31,
@@ -474,6 +395,10 @@ const MaxTypeSetMembers = 64
 
 // PWDHashLen is the length of password's hash.
 const PWDHashLen = 40
+
+
+
+
 
 // Priv2UserCol is the privilege to mysql.user Block column name.
 var Priv2UserCol = map[PrivilegeType]string{
@@ -539,11 +464,11 @@ var Col2PrivType = map[string]PrivilegeType{
 var Command2Str = map[byte]string{
 	ComSleep:            "Sleep",
 	ComQuit:             "Quit",
-	ComInitnoedb:           "Init DB",
+	ComInitnoedb:         "Init DB",
 	ComQuery:            "Query",
 	ComFieldList:        "Field List",
-	ComCreatenoedb:         "Create DB",
-	ComDropnoedb:           "Drop DB",
+	ComCreatenoedb:       "Create DB",
+	ComDropnoedb:         "Drop DB",
 	ComRefresh:          "Refresh",
 	ComShutdown:         "Shutdown",
 	ComStatistics:       "Statistics",

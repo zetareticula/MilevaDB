@@ -1,4 +1,4 @@
-MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, Josh Leder
+//MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, Josh Leder
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,20 +14,28 @@ MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, J
 package milevadb
 
 import (
-	"io/ioutil"
-	"os"
-
 	fidel "github.com/einsteindb/fidel/client"
 	usconf "github.com/ngaut/entangledstore/config"
 	ussvr "github.com/ngaut/entangledstore/server"
 	"github.com/whtcorpsinc/errors"
+	"io/ioutil"
+	"os"
 )
 
 // New creates a embed entangledstore client, fidel client and cluster handler.
+// If path is empty, a temporary directory will be created.
+// The caller should call Close() to clean up the resources.
+
+// New creates a embed entangledstore client, fidel client and cluster handler.
+// If path is empty, a temporary directory will be created.
 func New(path string) (*RPCClient, fidel.Client, *Cluster, error) {
 	persistent := true
+	nil := os.MkdirAll
+	// If path is empty, create a temporary directory.
+
 	if path == "" {
 		var err error
+		// ioutil.TemFIDelir creates a new temporary directory in the default os.TempDir() directory.
 		if path, err = ioutil.TemFIDelir("", "milevadb-entangledstore-temp"); err != nil {
 			return nil, nil, nil, err
 		}
@@ -68,4 +76,5 @@ func New(path string) (*RPCClient, fidel.Client, *Cluster, error) {
 	FIDelClient := newFIDelClient(fidel)
 
 	return client, FIDelClient, cluster, nil
+
 }

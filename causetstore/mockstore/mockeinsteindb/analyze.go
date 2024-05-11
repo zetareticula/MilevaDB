@@ -1,4 +1,4 @@
-MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, Josh Leder
+//MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, Josh Leder
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,26 +11,25 @@ MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, J
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mockeinsteindb
+package milevadb
 
 import (
 	"context"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/whtcorpsinc/MilevaDB-Prod/blockcodec"
-	"github.com/whtcorpsinc/MilevaDB-Prod/solomonkey"
 	"github.com/whtcorpsinc/MilevaDB-Prod/soliton/chunk"
 	"github.com/whtcorpsinc/MilevaDB-Prod/soliton/codec"
 	"github.com/whtcorpsinc/MilevaDB-Prod/soliton/collate"
 	"github.com/whtcorpsinc/MilevaDB-Prod/soliton/rowcodec"
+	"github.com/whtcorpsinc/MilevaDB-Prod/solomonkey"
 	"github.com/whtcorpsinc/MilevaDB-Prod/statistics"
 	"github.com/whtcorpsinc/MilevaDB-Prod/types"
 	"github.com/whtcorpsinc/berolinaAllegroSQL/allegrosql"
 	"github.com/whtcorpsinc/berolinaAllegroSQL/ast"
 	"github.com/whtcorpsinc/berolinaAllegroSQL/perceptron"
-	"github.com/whtcorpsinc/solomonkeyproto/pkg/interlock"
 	"github.com/whtcorpsinc/errors"
-	"github.com/whtcorpsinc/fidelpb/go-fidelpb"
+	"github.com/whtcorpsinc/solomonkeyproto/pkg/interlock"
 )
 
 func (h *rpcHandler) handleINTERLOCKAnalyzeRequest(req *interlock.Request) *interlock.Response {
@@ -72,14 +71,14 @@ func (h *rpcHandler) handleAnalyzeIndexReq(req *interlock.Request, analyzeReq *f
 		startTS = analyzeReq.GetStartTsFallback()
 	}
 	e := &indexScanExec{
-		defcausLen:     int(analyzeReq.IdxReq.NumDeferredCausets),
-		kvRanges:       ranges,
-		startTS:        startTS,
-		isolationLevel: h.isolationLevel,
-		mvsr-oocStore:      h.mvsr-oocStore,
-		IndexScan:      &fidelpb.IndexScan{Desc: false},
-		execDetail:     new(execDetail),
-		hdStatus:       blockcodec.HandleNotNeeded,
+		defcausLen:      int(analyzeReq.IdxReq.NumDeferredCausets),
+		kvRanges:        ranges,
+		startTS:         startTS,
+		isolationLevel:  h.isolationLevel,
+		mvsr - oocStore: h.mvsr - oocStore,
+		IndexScan:       &fidelpb.IndexScan{Desc: false},
+		execDetail:      new(execDetail),
+		hdStatus:        blockcodec.HandleNotNeeded,
 	}
 	statsBuilder := statistics.NewSortedBuilder(flagsToStatementContext(analyzeReq.Flags), analyzeReq.IdxReq.BucketSize, 0, types.NewFieldType(allegrosql.TypeBlob))
 	var cms *statistics.CMSketch
@@ -166,14 +165,14 @@ func (h *rpcHandler) handleAnalyzeDeferredCausetsReq(req *interlock.Request, ana
 	rd := rowcodec.NewByteDecoder(colInfos, []int64{-1}, defVal, nil)
 	e := &analyzeDeferredCausetsExec{
 		tblExec: &blockScanExec{
-			TableScan:      &fidelpb.TableScan{DeferredCausets: columns},
-			kvRanges:       ranges,
-			colIDs:         evalCtx.colIDs,
-			startTS:        startTS,
-			isolationLevel: h.isolationLevel,
-			mvsr-oocStore:      h.mvsr-oocStore,
-			execDetail:     new(execDetail),
-			rd:             rd,
+			TableScan:       &fidelpb.TableScan{DeferredCausets: columns},
+			kvRanges:        ranges,
+			colIDs:          evalCtx.colIDs,
+			startTS:         startTS,
+			isolationLevel:  h.isolationLevel,
+			mvsr - oocStore: h.mvsr - oocStore,
+			execDetail:      new(execDetail),
+			rd:              rd,
 		},
 	}
 	e.fields = make([]*ast.ResultField, len(columns))

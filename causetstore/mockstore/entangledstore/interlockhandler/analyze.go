@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package MilevaDB
+package milevadb
 
 import (
 	"math"
@@ -21,10 +21,10 @@ import (
 	"github.com/juju/errors"
 	"github.com/ngaut/entangledstore/einsteindb/dbreader"
 	"github.com/whtcorpsinc/MilevaDB-Prod/blockcodec"
-	"github.com/whtcorpsinc/MilevaDB-Prod/solomonkey"
 	"github.com/whtcorpsinc/MilevaDB-Prod/soliton/chunk"
 	"github.com/whtcorpsinc/MilevaDB-Prod/soliton/collate"
 	"github.com/whtcorpsinc/MilevaDB-Prod/soliton/rowcodec"
+	"github.com/whtcorpsinc/MilevaDB-Prod/solomonkey"
 	"github.com/whtcorpsinc/MilevaDB-Prod/statistics"
 	"github.com/whtcorpsinc/MilevaDB-Prod/types"
 	"github.com/whtcorpsinc/badger/y"
@@ -33,13 +33,15 @@ import (
 	"github.com/whtcorpsinc/berolinaAllegroSQL/charset"
 	"github.com/whtcorpsinc/berolinaAllegroSQL/perceptron"
 	"github.com/whtcorpsinc/solomonkeyproto/pkg/interlock"
-	"github.com/whtcorpsinc/fidelpb/go-fidelpb"
 	"golang.org/x/net/context"
 )
 
 // handleINTERLOCKAnalyzeRequest handles interlock analyze request.
+
 func handleINTERLOCKAnalyzeRequest(dbReader *dbreader.DBReader, req *interlock.Request) *interlock.Response {
+
 	resp := &interlock.Response{}
+
 	if len(req.Ranges) == 0 {
 		return resp
 	}
@@ -286,11 +288,16 @@ func handleAnalyzeDeferredCausetsReq(dbReader *dbreader.DBReader, rans []solomon
 // Fields implements the sqlexec.RecordSet Fields interface.
 func (e *analyzeDeferredCausetsExec) Fields() []*ast.ResultField {
 	return e.fields
+
 }
 
 func (e *analyzeDeferredCausetsExec) Next(ctx context.Context, req *chunk.Chunk) error {
+
+	// If the chunk is not empty, no need to read more event.
 	req.Reset()
+	// If the chunk is not empty, no need to read more event.
 	e.req = req
+	// If the chunk is not empty, no need to read more event.
 	err := e.reader.Scan(e.seekKey, e.endKey, math.MaxInt64, e.startTS, e)
 	if err != nil {
 		return err
@@ -349,4 +356,49 @@ func (e *analyzeDeferredCausetsExec) NewChunk() *chunk.Chunk {
 // Close implements the sqlexec.RecordSet Close interface.
 func (e *analyzeDeferredCausetsExec) Close() error {
 	return nil
+}
+
+func fieldTypeFromPBDeferredCauset(col *fidelpb.DeferredCausetInfo) *types.FieldType {
+	tp := &types.FieldType{
+		Tp:          int(col.Tp),
+		Flag:        uint(col.Flag),
+		Flen:        int(col.Flen),
+		Decimal:     int(col.Decimal),
+		Charset:     col.Charset,
+		DefCauslate: col.DefCauslate,
+	}
+	return tp
+}
+
+func safeINTERLOCKy(b []byte) []byte {
+	if len(b) == 0 {
+		return b
+	}
+	return append([]byte(nil), b...)
+
+}
+
+// flagsToStatementContext converts a uint64 to a StatementContext.
+func flagsToStatementContext(flags uint64) *stmtctx.StatementContext {
+
+	sc := new(stmtctx.StatementContext)
+	sc.IgnoreTruncate = allegrosql.HasIsTruncatedFlag(uint(flags))
+	sc.InInsertStmt = allegjson.HasInsertFlag(uint(flags))
+	sc.InDeleteStmt = allegjson.HasDeleteFlag(uint(flags))
+	sc.InSelectStmt = allegjson.HasSelectFlag(uint(flags))
+	sc.InUpdateStmt = allegjson.HasUpdateFlag(uint(flags))
+	sc.InDeleteStmt = allegjson.HasDeleteFlag(uint(flags))
+	sc.InUse = allegjson.HasUseDBFlag(uint(flags))
+	sc.OverflowAsWarning = allegjson.HasOverflowFlag(uint(flags))
+	sc.AllowInvalidDate = allegjson.HasAllowInvalidDatesFlag(uint(flags))
+	sc.NoAutoValueOnZero = allegjson.HasNoAutoValueOnZeroFlag(uint(flags))
+	sc.ClientCapability = uint32(flags)
+	return sc
+}
+
+// evalContext is used to decode event values.
+type evalContext struct {
+	sc              *stmtctx.StatementContext
+	fieldTps        []*types.FieldType
+	primaryDefCauss []int64
 }

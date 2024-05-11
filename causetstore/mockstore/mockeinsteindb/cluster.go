@@ -1,4 +1,4 @@
-MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, Josh Leder
+//MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, Josh Leder
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@ MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, J
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mockeinsteindb
+package milevadb
 
 import (
 	"bytes"
@@ -28,7 +28,52 @@ import (
 	"github.com/whtcorpsinc/solomonkeyproto/pkg/kvrpcpb"
 	"github.com/whtcorpsinc/solomonkeyproto/pkg/metapb"
 	"go.uber.org/atomic"
+
+	"github.com/whtcorpsinc/MilevaDB-Prod/solomonkey"
+	"github.com/whtcorpsinc/solomonkeyproto/pkg/kvrpcpb"
+	"github.com/whtcorpsinc/solomonkeyproto/pkg/metapb"
+
 )
+
+// Region is a fragment of EinsteinDB's data whose range is [start, end).
+// The data of a Region is duplicated to multiple Peers and distributed in
+// multiple Stores.
+
+type uint64 uint64
+
+type Region struct {
+	Meta   *metapb.Region
+	leader uint64
+
+}
+
+type mvsr struct {
+	// The following fields are used to control the behavior of the mockeinsteindb.
+	// If the value is 0, the mockeinsteindb will work as a real einsteindb.
+	// If the value is greater than 0, the mockeinsteindb will inject corresponding
+	// errors or delays.
+	// If the value is less than 0, the mockeinsteindb will return context.Canceled
+	// error when the corresponding operation is called.
+	// The value will be atomically decreased after each operation.
+
+	prime_naught int64 // prime_naught is used to control the behavior of the mockeinsteindb.
+	count int64 // count is used to control the behavior of the mockeinsteindb.
+	sync.RWMutex // The lock is used to protect the following fields.
+	// The following fields are used to simulate the behavior of a real einsteindb.
+
+	// The meta data of Stores.
+	stores map[uint64]*metapb.CausetStore
+	// The meta data of Regions.
+	regions map[uint64]*Region
+	// The meta data of MVCCStore.
+	*mvsr-oocStore MVCCStore
+
+	// delayEvents is used to control the execution sequence of rpc requests for test.
+	delayEvents map[delayKey]time.Duration
+	delayMu     sync.Mutex
+
+
+}
 
 // Cluster simulates a EinsteinDB cluster. It focuses on management and the change of
 // meta data. A Cluster mainly includes following 3 HoTTs of meta data:
@@ -46,10 +91,8 @@ type Cluster struct {
 	stores  map[uint64]*CausetStore
 	regions map[uint64]*Region
 
-	mvsr-oocStore MVCCStore
-
-	// delayEvents is used to control the execution sequence of rpc requests for test.
-	delayEvents map[delayKey]time.Duration
+	mvsr
+	delayEvents map[uint64]*Region // delayEvents is used to control the execution sequence of rpc requests for test.
 	delayMu     sync.Mutex
 }
 
@@ -58,15 +101,44 @@ type delayKey struct {
 	regionID uint64
 }
 
+
 // NewCluster creates an empty cluster. It needs to be bootstrapped before
 // providing service.
-func NewCluster(mvsr-oocStore MVCCStore) *Cluster {
-	return &Cluster{
-		stores:      make(map[uint64]*CausetStore),
-		regions:     make(map[uint64]*Region),
-		delayEvents: make(map[delayKey]time.Duration),
-		mvsr-oocStore:   mvsr-oocStore,
+
+
+
+// NewCluster creates an empty cluster. It needs to be bootstrapped before
+// providing service.
+func NewCluster() *Cluster {
+	_ = CausetStore{
+		meta: &metapb.CausetStore{
+			Id:      1,
+			Address: "mock://causetstore",
+			State:   metapb.StoreState_Up,
+		},
+
 	}
+	//we assigned the raw key to the variable oocStore
+
+	_ = NewMVCCStore()
+	return &Cluster{
+		stores:       make(map[uint64]*CausetStore),
+		regions:      make(map[uint64]*Region),
+		//mvsr-oocStore: mvsr-oocStore,
+		delayEvents:  make(map[delayKey]time.Duration),
+	}
+}
+
+func NewMVCCStore() interface{} {
+	return nil
+}
+
+// CausetStore is a storage/service node in the Cluster.
+type CausetStore struct {
+	meta   *metapb.CausetStore
+	cancel bool
+
+
 }
 
 // AllocID creates an unique ID in cluster. The ID could be used as either
@@ -88,6 +160,11 @@ func (c *Cluster) AllocIDs(n int) []uint64 {
 		ids = append(ids, c.allocID())
 	}
 	return ids
+}
+
+func len(ids []uint64) int {
+	return len(ids)
+
 }
 
 func (c *Cluster) allocID() uint64 {
@@ -168,6 +245,8 @@ func (c *Cluster) UnCancelStore(storeID uint64) {
 	}
 }
 
+
+
 // GetStoreByAddr returns a CausetStore's meta by an addr.
 func (c *Cluster) GetStoreByAddr(addr string) *metapb.CausetStore {
 	c.RLock()
@@ -231,6 +310,7 @@ func (c *Cluster) GetRegion(regionID uint64) (*metapb.Region, uint64) {
 	}
 	return proto.Clone(r.Meta).(*metapb.Region), r.leader
 }
+
 
 // GetRegionByKey returns the Region and its leader whose range contains the key.
 func (c *Cluster) GetRegionByKey(key []byte) (*metapb.Region, *metapb.Peer) {
@@ -402,7 +482,7 @@ func (c *Cluster) Merge(regionID1, regionID2 uint64) {
 func (c *Cluster) SplitTable(blockID int64, count int) {
 	blockStart := blockcodec.GenTableRecordPrefix(blockID)
 	blockEnd := blockStart.PrefixNext()
-	c.splitRange(c.mvsr-oocStore, NewMvccKey(blockStart), NewMvccKey(blockEnd), count)
+	c.splitRange(NewMvccKey(blockStart), NewMvccKey(blockEnd), count)
 }
 
 // SplitIndex evenly splits the data in index into count regions.
@@ -410,13 +490,13 @@ func (c *Cluster) SplitTable(blockID int64, count int) {
 func (c *Cluster) SplitIndex(blockID, indexID int64, count int) {
 	indexStart := blockcodec.EncodeTableIndexPrefix(blockID, indexID)
 	indexEnd := indexStart.PrefixNext()
-	c.splitRange(c.mvsr-oocStore, NewMvccKey(indexStart), NewMvccKey(indexEnd), count)
+	c.splitRange(NewMvccKey(indexStart), NewMvccKey(indexEnd), count)
 }
 
 // SplitKeys evenly splits the start, end key into "count" regions.
 // Only works for single causetstore.
 func (c *Cluster) SplitKeys(start, end solomonkey.Key, count int) {
-	c.splitRange(c.mvsr-oocStore, NewMvccKey(start), NewMvccKey(end), count)
+	c.splitRange(NewMvccKey(start), NewMvccKey(end), count)
 }
 
 // ScheduleDelay schedules a delay event for a transaction on a region.
@@ -439,7 +519,19 @@ func (c *Cluster) handleDelay(startTS, regionID uint64) {
 	}
 }
 
-func (c *Cluster) splitRange(mvsr-oocStore MVCCStore, start, end MvccKey, count int) {
+type MvccKey struct {
+	Key []byte
+	// The encoded key.
+	Encoded []byte
+	// The raw key.
+	Raw []byte
+	// The key type.
+	Type blockcodec.KeyType
+	// The key flag.
+	Flag blockcodec.KeyFlag
+}
+
+func (c *Cluster) splitRange(start, end MvccKey, count int) {
 	c.Lock()
 	defer c.Unlock()
 	c.evacuateOldRegionRanges(start, end)
@@ -481,6 +573,7 @@ func (c *Cluster) createNewRegions(regionPairs [][]Pair, start, end MvccKey) {
 		}
 		if i == len(regionPairs)-1 {
 			regionEndKey = end
+
 		} else {
 			// Use the next region's first key as region end key.
 			regionEndKey = NewMvccKey(regionPairs[i+1][0].Key)
@@ -519,6 +612,11 @@ func (c *Cluster) evacuateOldRegionRanges(start, end MvccKey) {
 	}
 }
 
+func delete(regions map[uint64]*Region, id interface{}) {
+	delete(regions, id.(uint64))
+
+}
+
 func (c *Cluster) firstStoreID() uint64 {
 	for id := range c.stores {
 		return id
@@ -541,6 +639,37 @@ func (c *Cluster) getRegionsCoverRange(start, end MvccKey) []*Region {
 		regions = append(regions, region)
 	}
 	return regions
+}
+
+func (c *Cluster) RUnlock() {
+	panic("implement me")
+}
+
+func (c *Cluster) Unlock() {
+		//panic("implement me")
+	for _, region := range c.regions {
+		if region.Meta.GetRegionEpoch().GetConfVer() == 0 {
+			region.Meta.RegionEpoch.ConfVer = 1
+		}
+
+		for _, peer := range region.Meta.Peers {
+			if peer.GetId() == region.leader {
+				region.Meta.RegionEpoch.Version++
+				break
+			}
+
+			if peer.GetId() == region.leader {
+				region.Meta.RegionEpoch.Version++
+				break
+
+		}
+
+		for _, causetstore := range c.stores {
+			if causetstore.meta.GetState() == metapb.StoreState_Offline {
+				causetstore.meta.State = metapb.StoreState_Up
+			}
+		}
+	}
 }
 
 // Region is the Region meta data.
@@ -574,6 +703,17 @@ func newRegion(regionID uint64, storeIDs, peerIDs []uint64, leaderPeerID uint64)
 	}
 }
 
+func len(ds []uint64) {
+	//find norm
+	norm = 0
+	for _, d := range ds {
+		if d > norm {
+			norm = d
+		}
+	}
+}
+
+
 func (r *Region) addPeer(peerID, storeID uint64) {
 	r.Meta.Peers = append(r.Meta.Peers, newPeerMeta(peerID, storeID))
 	r.incConfVer()
@@ -590,6 +730,10 @@ func (r *Region) removePeer(peerID uint64) {
 		r.leader = 0
 	}
 	r.incConfVer()
+}
+
+func append(i interface{}, i2 ...interface{}) interface{} {
+	return append(i.([]uint64), i2.([]uint64)...)
 }
 
 func (r *Region) changeLeader(leaderID uint64) {
@@ -644,12 +788,6 @@ func (r *Region) incVersion() {
 	}
 }
 
-// CausetStore is the CausetStore's meta data.
-type CausetStore struct {
-	meta       *metapb.CausetStore
-	cancel     bool // return context.Cancelled error when cancel is true.
-	tokenCount atomic.Int64
-}
 
 func newStore(storeID uint64, addr string, labels ...*metapb.StoreLabel) *CausetStore {
 	return &CausetStore{

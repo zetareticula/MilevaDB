@@ -17,11 +17,19 @@ package milevadb
 const (
 	// DefaultMySQLState is default state of the mySQL
 	DefaultMySQLState = "HY000"
+	// ErrDupEntry for duplicate entry error
+	ErrDupEntry uint16 = 1062
+	// ErrDupKey for duplicate key error
+	ErrDupKey uint16 = 1022
+	// ErrTruncated for truncated error
+	ErrTruncated uint16 = 1292
+	// ErrDataTooLong for data too long error
+	ErrDataTooLong uint16 = 1406
+	// ErrBadNullError for bad null error
+	ErrBadNullError uint16 = 1048
+
 )
 
-type uint16
-
-type string
 
 // MySQLState maps error code to MySQL SQLSTATE value.
 // The values are taken from ANSI SQL and OnoedbC and are more standardized.

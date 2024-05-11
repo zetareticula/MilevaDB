@@ -20,10 +20,22 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
+	"time"
+	"unicode/utf8"
+	"unsafe"
+	"github.com/YosiSF/MilevaDB/BerolinaSQL/ast"
+	"github.com/YosiSF/MilevaDB/BerolinaSQL/opcode"
+	"github.com/YosiSF/MilevaDB/BerolinaSQL/terror"
+	"github.com/YosiSF/MilevaDB/BerolinaSQL/types"
+	"github.com/YosiSF/MilevaDB/BerolinaSQL/util/chunk"
+	"github.com/YosiSF/MilevaDB/BerolinaSQL/util/hack"
+	"github.com/YosiSF/MilevaDB/BerolinaSQL/util/rowcodec"
 )
 
 const chunkMaxRows = 1024
 
+const iota = 0
 const (
 	pkDefCausNotExists = iota
 	pkDefCausIsSigned
@@ -31,20 +43,40 @@ const (
 	pkDefCausIsCommon
 )
 
-func mapPkStatusToHandleStatus(pkStatus int) blockcodec.HandleStatus {
-	switch pkStatus {
-	case pkDefCausNotExists:
-		return blockcodec.HandleNotNeeded
-	case pkDefCausIsCommon | pkDefCausIsSigned:
-		return blockcodec.HandleDefault
-	case pkDefCausIsUnsigned:
-		return blockcodec.HandleIsUnsigned
-	}
-	return blockcodec.HandleDefault
+type closureExecutor struct {
+	*posetPosetDagContext
+	outputOff    []uint32
+	seCtx        stochastikctx.Context
+	kvRanges     []solomonkey.KeyRange
+	startTS      uint64
+	ignoreLock   bool
+	lockChecked  bool
+	scanCtx      scanCtx
+	idxScanCtx   *idxScanCtx
+	selectionCtx selectionCtx
+	aggCtx       aggCtx
+	topNCtx      *topNCtx
+	processor    *topNProcessor
+	rowCount     int
+	unique       bool
+	limit        int
+	oldChunks    []fidelpb.Chunk
+	columnInfos  interface{}
 }
 
-type posetPosetDagContext 
+func newClosureExecutor(posetPosetDagContext *posetPosetDagContext) *closureExecutor {
+	return &closureExecutor{posetPosetDagContext: posetPosetDagContext}
+}
 
+type scanCtx struct {
+	count                    int
+	limit                    int
+	chk                      *chunk.Chunk
+	desc                     bool
+	decoder                  *rowcodec.ChunkDecoder
+	primaryDeferredCausetIds []int64
+
+}
 // buildClosureExecutor build a closureExecutor for the PosetDagRequest.
 // Currently the composition of executors are:
 // 	blockScan|indexScan [selection] [topN | limit | agg]
@@ -103,48 +135,24 @@ func convertToExprs(sc *stmtctx.StatementContext, fieldTps []*types.FieldType, p
 	return exprs, nil
 }
 
-func newClosureExecutor(posetPosetDagCtx *posetPosetDagContext, posetPosetDagReq *fidelpb.PosetDagRequest) (*closureExecutor, error) {
-	e := &closureExecutor{
-		posetPosetDagContext: posetPosetDagCtx,
-		outputOff:            posetPosetDagReq.OutputOffsets,
-		startTS:              posetPosetDagCtx.startTS,
-		limit:                math.MaxInt64,
+func (e *closureExecutor) initScanCtx(scan *fidelpb.Scan) {
+	e.scanCtx = scanCtx{
+		desc:                     scan.Desc,
+		limit:                    int(scan.Limit),
+		chk:                      chunk.NewChunkWithCapacity(e.fieldTps, e.initCap),
+		decoder:                  rowcodec.NewChunkDecoder(e.fieldTps, e.sc.TimeZone),
+		primaryDeferredCausetIds: scan.PrimaryDeferredCausetIds,
 	}
-	seCtx := mockpkg.NewContext()
-	seCtx.GetStochaseinstein_dbars().StmtCtx = e.sc
-	e.seCtx = seCtx
-	executors := posetPosetDagReq.Executors
-	scanExec := executors[0]
-	switch scanExec.Tp {
-	case fidelpb.ExecType_TypeTableScan:
-		tblScan := executors[0].TblScan
-		e.unique = true
-		e.scanCtx.desc = tblScan.Desc
-	case fidelpb.ExecType_TypeIndexScan:
-		idxScan := executors[0].IdxScan
-		e.unique = idxScan.GetUnique()
-		e.scanCtx.desc = idxScan.Desc
-		e.initIdxScanCtx(idxScan)
-	default:
-		panic(fmt.Sprintf("unknown first executor type %s", executors[0].Tp))
+
+	if len(e.scanCtx.primaryDeferredCausetIds) == 0 {
+		e.scanCtx.primaryDeferredCausetIds = []int64{e.columnInfos[len(e.columnInfos)-1].DeferredCausetId}
+
+
 	}
-	ranges, err := extractKVRanges(posetPosetDagCtx.dbReader.StartKey, posetPosetDagCtx.dbReader.EndKey, posetPosetDagCtx.keyRanges, e.scanCtx.desc)
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
-	if posetPosetDagReq.GetDefCauslectRangeCounts() {
-		e.counts = make([]int64, len(ranges))
-	}
-	e.kvRanges = ranges
-	e.scanCtx.chk = chunk.NewChunkWithCapacity(e.fieldTps, 32)
-	if e.idxScanCtx == nil {
-		e.scanCtx.decoder, err = e.evalContext.newRowDecoder()
-		if err != nil {
-			return nil, errors.Trace(err)
-		}
-	}
-	return e, nil
+
+
 }
+
 
 func (e *closureExecutor) initIdxScanCtx(idxScan *fidelpb.IndexScan) {
 	e.idxScanCtx = new(idxScanCtx)
@@ -203,6 +211,9 @@ func isCountAgg(pbAgg *fidelpb.Aggregation) bool {
 	return false
 }
 
+
+
+
 func tryBuildCountProcessor(e *closureExecutor, executors []*fidelpb.Executor) (bool, error) {
 	if len(executors) > 2 {
 		return false, nil
@@ -220,9 +231,9 @@ func tryBuildCountProcessor(e *closureExecutor, executors []*fidelpb.Executor) (
 		}
 		e.aggCtx.col = e.columnInfos[idx]
 		if e.aggCtx.col.PkHandle {
-			e.processor = &countStarProcessor{skipVal: skipVal(true), closureExecutor: e}
+			e.processor = (*topNProcessor)(&countStarProcessor{skipVal: skipVal(true), closureExecutor: e})
 		} else {
-			e.processor = &countDeferredCausetProcessor{closureExecutor: e}
+			e.processor = (*topNProcessor)(&countDeferredCausetProcessor{closureExecutor: e})
 		}
 	case fidelpb.ExprType_Null, fidelpb.ExprType_ScalarFunc:
 		return false, nil
@@ -254,15 +265,30 @@ func buildHashAggProcessor(e *closureExecutor, ctx *posetPosetDagContext, agg *f
 	if err != nil {
 		return err
 	}
-	e.processor = &hashAggProcessor{
-		closureExecutor: e,
-		aggExprs:        aggs,
-		groupByExprs:    groupBys,
-		groups:          map[string]struct{}{},
-		groupKeys:       nil,
-		aggCtxsMap:      map[string][]*aggregation.AggEvaluateContext{},
-	}
+	e.aggCtxsMap = make(map[string][]*aggregation.AggEvaluateContext)
+	e.aggExprs = aggs
+	e.groupByExprs = groupBys
+	e.groups = make(map[string]struct{})
+	e.groupKeys = make([][]byte, 0, 8)
+	e.processor = &hashAggProcessor{closureExecutor: e}
 	return nil
+}
+
+func getAggInfo(ctx *posetPosetDagContext, agg *fidelpb.Aggregation) ([]aggregation.Aggregation, []expression.Expression, error) {
+	aggs := make([]aggregation.Aggregation, 0, len(agg.AggFunc))
+	for _, aggFunc := range agg.AggFunc {
+		agg, err := aggregation.NewAggFuncDesc(ctx.sc, aggFunc)
+		if err != nil {
+			return nil, nil, errors.Trace(err)
+		}
+		aggs = append(aggs, agg)
+	}
+	groupBys, err := convertToExprs(ctx.sc, ctx.fieldTps, agg.GroupBy)
+	if err != nil {
+		return nil, nil, errors.Trace(err)
+	}
+	return aggs, groupBys, nil
+
 }
 
 func buildStreamAggProcessor(e *closureExecutor, ctx *posetPosetDagContext, executors []*fidelpb.Executor) error {
@@ -289,33 +315,17 @@ type closureExecutor struct {
 	selectionCtx selectionCtx
 	aggCtx       aggCtx
 	topNCtx      *topNCtx
-
-	rowCount int
-	unique   bool
-	limit    int
-
-	oldChunks []fidelpb.Chunk
-	oldRowBuf []byte
-	processor closureProcessor
-
-	counts []int64
+	processor    *topNProcessor
+	rowCount     int
+	unique       bool
+	limit        int
+	oldChunks    []fidelpb.Chunk
+	columnInfos  interface{}
 }
 
-type closureProcessor interface {
-	dbreader.ScanProcessor
-	Finish() error
-}
+func newClosureExecutor(posetPosetDagContext *posetPosetDagContext) *closureExecutor {
+	return &closureExecutor{posetPosetDagContext: posetPosetDagContext}
 
-type scanCtx struct {
-	count                    int
-	limit                    int
-	chk                      *chunk.Chunk
-	desc                     bool
-	decoder                  *rowcodec.ChunkDecoder
-	primaryDeferredCausetIds []int64
-
-	newDefCauslationRd  *rowcodec.BytesDecoder
-	newDefCauslationIds map[int64]int
 }
 
 type idxScanCtx struct {

@@ -1,4 +1,4 @@
-MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, Josh Leder
+//MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, Josh Leder
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@ MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, J
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package entangledstore
+package milevadb
 
 import (
 	"io"
@@ -25,16 +25,16 @@ import (
 	"github.com/golang/protobuf/proto"
 	us "github.com/ngaut/entangledstore/einsteindb"
 	"github.com/whtcorpsinc/MilevaDB-Prod/causetstore/einsteindb/einsteindbrpc"
-	"github.com/whtcorpsinc/MilevaDB-Prod/solomonkey"
 	"github.com/whtcorpsinc/MilevaDB-Prod/soliton/codec"
+	"github.com/whtcorpsinc/MilevaDB-Prod/solomonkey"
 	"github.com/whtcorpsinc/berolinaAllegroSQL/terror"
+	"github.com/whtcorpsinc/errors"
+	"github.com/whtcorpsinc/failpoint"
 	"github.com/whtcorpsinc/solomonkeyproto/pkg/debugpb"
 	"github.com/whtcorpsinc/solomonkeyproto/pkg/errorpb"
 	"github.com/whtcorpsinc/solomonkeyproto/pkg/interlock"
 	"github.com/whtcorpsinc/solomonkeyproto/pkg/kvrpcpb"
 	"github.com/whtcorpsinc/solomonkeyproto/pkg/metapb"
-	"github.com/whtcorpsinc/errors"
-	"github.com/whtcorpsinc/failpoint"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/metadata"
 )

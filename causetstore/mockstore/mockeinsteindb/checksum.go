@@ -1,4 +1,4 @@
-MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, Josh Leder
+//MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, Josh Leder
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,13 +11,12 @@ MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, J
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mockeinsteindb
+package milevadb
 
 import (
 	"fmt"
 
 	"github.com/whtcorpsinc/solomonkeyproto/pkg/interlock"
-	"github.com/whtcorpsinc/fidelpb/go-fidelpb"
 )
 
 func (h *rpcHandler) handleINTERLOCKChecksumRequest(req *interlock.Request) *interlock.Response {

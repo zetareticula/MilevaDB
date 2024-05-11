@@ -13,7 +13,92 @@
 package milevadb
 
 import (
+	"context"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"text/template"
+	"time"
 
+	"github.com/BurntSushi/toml"
+	"github.com/pingcap/tidb/plugin"
+	"github.com/pingcap/tidb/variable"
+)
+
+var pkgDir string
+var outDir string
+
+const codeTemplate = `// DO NOT MODIFY, AUTO-GENERATED CODE
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"text/template"
+	"time"
+
+	"github.com/BurntSushi/toml"
+	"github.com/pingcap/tidb/plugin"
+	"github.com/pingcap/tidb/variable"
+)
+
+func PluginManifest() *plugin.Manifest {
+	return plugin.ExportManifest(&plugin.MilevaDBManifest{
+		Manifest: plugin.Manifest{
+			HoTT:           plugin.MilevaDB,
+			Name:           "{{.name}}",
+			Description:    "{{.description}}",
+			Version:        {{.version}},
+			RequireVersion: map[string]uint16{},
+			License:        "{{.license}}",
+			BuildTime:      "{{.buildTime}}",
+			SysVars: map[string]*variable.SysVar{
+			    {{range .sysVars}}
+				"{{.name}}": {
+					Scope: variable.Scope{{.scope}},
+					Name:  "{{.name}}",
+					Value: "{{.value}}",
+				},
+				{{end}}
+			},
+			{{if .validate }}
+				Validate:   {{.validate}},
+			{{end}}
+			{{if .onInit }}
+				OnInit:     {{.onInit}},
+			{{end}}
+			{{if .onShutdown }}
+				OnShutdown: {{.onShutdown}},
+			{{end}}
+			{{if .onFlush }}
+				OnFlush:    {{.onFlush}},
+			{{end}}
+		},
+		{{range .export}}
+		{{.extPoint}}: {{.impl}},
+		{{end}}
+	})
+}
+{{range .export}}
+{{.impl}}
+{{end}}
+func init() {
+	flag.StringVar(&pkgDir, "pkg-dir", "", "plugin package folder path")
+	flag.StringVar
+import (
+""
 
 )
 
@@ -139,6 +224,8 @@ func main() {
 		log.Printf("compile plugin source code failure, %+v\n", err)
 		os.Exit(1)
 	}
+
+
 	fmt.Printf(`Package "%s" as plugin "%s" success.`+"\nManifest:\n", pkgDir, outputFile)
 	causetCausetEncoder := json.NewCausetEncoder(os.Stdout)
 	causetCausetEncoder.SetIndent(" ", "\t")

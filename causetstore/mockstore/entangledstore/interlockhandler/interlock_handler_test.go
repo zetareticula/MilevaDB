@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package MilevaDB
+package milevadb
 
 import (
 	"errors"
@@ -23,22 +23,19 @@ import (
 	"testing"
 
 	"github.com/ngaut/entangledstore/einsteindb/dbreader"
-	"github.com/ngaut/entangledstore/einsteindb/mvsr-ooc"
 	"github.com/ngaut/entangledstore/lockstore"
 	"github.com/whtcorpsinc/MilevaDB-Prod/blockcodec"
-	"github.com/whtcorpsinc/MilevaDB-Prod/solomonkey"
 	"github.com/whtcorpsinc/MilevaDB-Prod/expression"
 	"github.com/whtcorpsinc/MilevaDB-Prod/soliton/codec"
 	"github.com/whtcorpsinc/MilevaDB-Prod/soliton/rowcodec"
+	"github.com/whtcorpsinc/MilevaDB-Prod/solomonkey"
 	"github.com/whtcorpsinc/MilevaDB-Prod/stochastikctx/stmtctx"
 	"github.com/whtcorpsinc/MilevaDB-Prod/types"
 	"github.com/whtcorpsinc/badger"
 	"github.com/whtcorpsinc/badger/y"
 	"github.com/whtcorpsinc/berolinaAllegroSQL/allegrosql"
-	. "github.com/whtcorpsinc/check"
 	"github.com/whtcorpsinc/solomonkeyproto/pkg/interlock"
 	"github.com/whtcorpsinc/solomonkeyproto/pkg/kvrpcpb"
-	"github.com/whtcorpsinc/fidelpb/go-fidelpb"
 )
 
 func TestT(t *testing.T) {
@@ -407,8 +404,8 @@ type testStore struct {
 
 func (ts *testStore) prewrite(req *kvrpcpb.PrewriteRequest) {
 	for _, m := range req.Mutations {
-		dagger := &mvsr-ooc.MvccLock{
-			MvccLockHdr: mvsr-ooc.MvccLockHdr{
+		dagger := &mvsr - ooc.MvccLock{
+			MvccLockHdr: mvsr - ooc.MvccLockHdr{
 				StartTS:        req.StartVersion,
 				ForUFIDelateTS: req.ForUFIDelateTs,
 				TTL:            uint32(req.LockTtl),
@@ -426,8 +423,8 @@ func (ts *testStore) prewrite(req *kvrpcpb.PrewriteRequest) {
 func (ts *testStore) commit(keys [][]byte, startTS, commitTS uint64) error {
 	return ts.EDB.UFIDelate(func(txn *badger.Txn) error {
 		for _, key := range keys {
-			dagger := mvsr-ooc.DecodeLock(ts.locks.Get(key, nil))
-			userMeta := mvsr-ooc.NewDBUserMeta(startTS, commitTS)
+			dagger := mvsr - ooc.DecodeLock(ts.locks.Get(key, nil))
+			userMeta := mvsr - ooc.NewDBUserMeta(startTS, commitTS)
 			err := txn.SetEntry(&badger.Entry{
 				Key:      y.KeyWithTs(key, commitTS),
 				Value:    dagger.Value,

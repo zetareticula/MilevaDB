@@ -11,12 +11,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mockeinsteindb
+package milevadb
 
 import (
 	"time"
-
-	. "github.com/whtcorpsinc/check"
 )
 
 var _ = Suite(&testRPCHandlerSuite{})

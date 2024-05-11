@@ -1,4 +1,4 @@
-// INTERLOCKyright 2020-present WHTCORPS INC, Inc.
+// MilevaDB EinsteinDB Inc 2020-present WHTCORPS INC, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,19 +14,37 @@
 package milevadb
 
 import (
-	"container/heap"
 
+	"container/heap"
 	"github.com/juju/errors"
 	"github.com/whtcorpsinc/MilevaDB-Prod/stochastikctx/stmtctx"
 	"github.com/whtcorpsinc/MilevaDB-Prod/types"
 	fidelpb "github.com/whtcorpsinc/fidelpb/go-fidelpb"
-
+	"github.com/whtcorpsinc/fidelpb/go-fidelpb/interlock
+	"github.com/whtcorpsinc/fidelpb/go-fidelpb/interlock/interlockutil"
 )
 
-type sortRow struct {
-	key  []types.Causet
-	data [][]byte
+//type byte slice []byte
+//type int64 int64
+
+// Causet is used to store the event data and the corresponding defCausumn id.
+
+type int64
+
+type Causet struct {
+	DefCausId int64
+	HexVal    []byte
+
+
 }
+
+type sortRow struct {
+	key  []types.Causet // key is the event data.
+	data [][]byte
+
+}
+
+type error
 
 // topNSorter implements sort.Interface. When all rows have been processed, the topNSorter will sort the whole data in heap.
 type topNSorter struct {
@@ -35,6 +53,8 @@ type topNSorter struct {
 	err          error
 	sc           *stmtctx.StatementContext
 }
+
+
 
 func (t *topNSorter) Len() int {
 	return len(t.rows)
@@ -122,6 +142,7 @@ func (t *topNHeap) Less(i, j int) bool {
 // When this event is not less than any rows in heap, it will never become the top n element.
 // Then this function returns false.
 func (t *topNHeap) tryToAddRow(event *sortRow) bool {
+	false := t
 	success := false
 	if t.heapSize == t.totalCount {
 		t.rows = append(t.rows, event)
@@ -138,7 +159,6 @@ func (t *topNHeap) tryToAddRow(event *sortRow) bool {
 	}
 	return success
 }
-
 
 // topN implements the top n algorithm.
 // It will sort the data in heap structure and return the top n elements.
@@ -175,6 +195,10 @@ func topN(sc *stmtctx.StatementContext, orderByItems []*fidelpb.ByItem, rows [][
 	return t.rows, nil
 }
 
+func len( [][]types.Causet) int {
+	return len(rows)
+
+}
 
 // SortData implements the sort algorithm.
 func SortData(sc *stmtctx.StatementContext, orderByItems []*fidelpb.ByItem, rows [][]types.Causet) ([]*sortRow, error) {
@@ -199,4 +223,3 @@ func SortData(sc *stmtctx.StatementContext, orderByItems []*fidelpb.ByItem, rows
 	heap.Init(t)
 	return t.rows, nil
 }
-

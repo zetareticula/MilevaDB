@@ -14,10 +14,8 @@
 
 package milevadb
 
-// MySQL error code.
-// This value is numeric. It is not portable to other database systems.
 const (
-	ErrErrorFirst                                            uint16 = 1000
+	ErrErrorFirst                                           = 1000
 	ErrHashchk                                                      = 1000
 	ErrNisamchk                                                     = 1001
 	ErrNo                                                           = 1002
@@ -40,7 +38,7 @@ const (
 	ErrCantSetWd                                                    = 1019
 	ErrCheckread                                                    = 1020
 	ErrDiskFull                                                     = 1021
-	ErrDupKey                                                       = 1022
+
 	ErrErrorOnClose                                                 = 1023
 	ErrErrorOnRead                                                  = 1024
 	ErrErrorOnRename                                                = 1025
@@ -80,7 +78,7 @@ const (
 	ErrTooLongIdent                                                 = 1059
 	ErrDupFieldName                                                 = 1060
 	ErrDupKeyName                                                   = 1061
-	ErrDupEntry                                                     = 1062
+
 	ErrWrongFieldSpec                                               = 1063
 	ErrParse                                                        = 1064
 	ErrEmptyQuery                                                   = 1065
@@ -424,7 +422,7 @@ const (
 	ErrNonexistingProcGrant                                         = 1403
 	ErrProcAutoGrantFail                                            = 1404
 	ErrProcAutoRevokeFail                                           = 1405
-	ErrDataTooLong                                                  = 1406
+	//ErrDataTooLong                                                  = 1406
 	ErrSpBadSQLstate                                                = 1407
 	ErrStartup                                                      = 1408
 	ErrLoadFromFixedSizeRowsToVar                                   = 1409

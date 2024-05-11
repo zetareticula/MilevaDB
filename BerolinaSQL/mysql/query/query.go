@@ -15,14 +15,41 @@ import (
 	"unicode"
 )
 
-type string
+// CollationID is the type of collation ID.
+type CollationID uint8
 
-type Uint8
+// CharsetID is the type of charset ID.
+type CharsetID uint8
+
+type string charset
+
+// CharsetInfo contains information about a charset.
+type CharsetInfo struct {
+
+	// ID is the charset ID.
+	ID CharsetID
+	// Name is the charset name.
+	Name string
+	// DefaultCollation is the default collation name.
+	DefaultCollation string
+	// Collations is the collation information.
+	Collations []Collation
+	//Imputed is true if the charset is imputed.
+	Imputed bool
+	//truncate is true if the charset is truncated.
+	Truncated bool
+	//prefix is true if the charset is prefixed.
+	Prefix bool
+	//suffix_comp is true if the charset is suffix_comp.
+	SuffixComp bool
+	//is_combinable is true if the charset is combinable.
+	IsCombinable bool
+	//is_causet is true if the charset is causet.
+	IsCauset bool
+}
 
 //charset to collationID
 func CharsetNameToID(charset string) Uint8 {
-
-
 
 }
 
