@@ -19,6 +19,8 @@ import (
 	"github.com/whtcorpsinc/berolinaAllegroSQL/terror"
 	. "github.com/whtcorpsinc/check"
 	"github.com/whtcorpsinc/errors"
+	"github.com/whtcorpsinc/milevadb/causetstore/mockstore"
+	. "github.com/whtcorpsinc/milevadb/causetstore/mockstore/unistore"
 )
 
 type testFaultInjectionSuite struct{}
@@ -86,3 +88,5 @@ func (s testFaultInjectionSuite) TestFaultInjectionBasic(c *C) {
 	c.Assert(err, NotNil)
 	c.Assert(terror.ErrorEqual(err, ErrTxnRetryable), IsTrue)
 }
+
+

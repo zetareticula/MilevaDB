@@ -14,6 +14,9 @@ MilevaDB Copyright (c) 2022 MilevaDB Authors: Karl Whitford, Spencer Fogelman, J
 package MilevaDB
 
 import (
+
+	"fmt"
+	"regexp"
 	"bytes"
 	"encoding/hex"
 	"fmt"
@@ -24,6 +27,283 @@ import (
 	"github.com/whtcorpsinc/MilevaDB-Prod/stochastikctx/stmtctx"
 	"github.com/whtcorpsinc/MilevaDB-Prod/types"
 )
+
+// TokenType represents the type of a token
+type TokenType int
+
+const (
+	TokenError TokenType = iota
+	TokenIdentifier
+	TokenString
+	TokenNumber
+	TokenComment
+	TokenWhitespace
+)
+
+// Token represents a single token with its type and value
+type Token struct {
+	Type  TokenType
+	Value string
+}
+
+// Lexer represents a lexer for Lua code
+type Lexer struct {
+	input  string
+	pos    int
+	tokens []Token
+}
+
+// NewLexer creates a new lexer with the given input Lua code
+func NewLexer(input string) *Lexer {
+	return &Lexer{
+		input:  input,
+		pos:    0,
+		tokens: []Token{},
+	}
+}
+
+// NextToken returns the next token in the input Lua code
+func (l *Lexer) NextToken() Token {
+	for l.pos < len(l.input) {
+		r := rune(l.input[l.pos])
+
+		switch {
+		case r == '"':
+			return l.readString()
+		case unicode.IsLetter(r) || r == '_':
+			return l.readIdentifier()
+		case unicode.IsDigit(r):
+			return l.readNumber()
+		case r == '-' && l.peek() == '-':
+			return l.readComment()
+		case unicode.IsSpace(r):
+			l.consumeWhitespace()
+		default:
+			l.consume()
+			return Token{Type: TokenError, Value: string(r)}
+		}
+	}
+
+	return Token{Type: TokenError, Value: ""}
+}
+
+// readString reads a string token from the input
+func (l *Lexer) readString() Token {
+	start := l.pos
+	l.consume() // Consume opening quote
+
+	for l.pos < len(l.input) && l.input[l.pos] != '"' {
+		l.consume()
+	}
+
+	if l.pos < len(l.input) {
+		l.consume() // Consume closing quote
+	}
+
+	return Token{Type: TokenString, Value: l.input[start:l.pos]}
+}
+
+// readIdentifier reads an identifier token from the input
+func (l *Lexer) readIdentifier() Token {
+	start := l.pos
+	for l.pos < len(l.input) && (unicode.IsLetter(rune(l.input[l.pos])) || unicode.IsDigit(rune(l.input[l.pos])) || l.input[l.pos] == '_') {
+		l.consume()
+	}
+	return Token{Type: TokenIdentifier, Value: l.input[start:l.pos]}
+}
+
+// readNumber reads a number token from the input
+func (l *Lexer) readNumber() Token {
+	start := l.pos
+	for l.pos < len(l.input) && (unicode.IsDigit(rune(l.input[l.pos])) || l.input[l.pos] == '.') {
+		l.consume()
+	}
+	return Token{Type: TokenNumber, Value: l.input[start:l.pos]}
+}
+
+// readComment reads a comment token from the input
+func (l *Lexer) readComment() Token {
+	start := l.pos
+	for l.pos < len(l.input) && l.input[l.pos] != '\n' {
+		l.consume()
+	}
+	return Token{Type: TokenComment, Value: l.input[start:l.pos]}
+}
+
+// consumeWhitespace consumes whitespace characters from the input
+func (l *Lexer) consumeWhitespace() {
+	for l.pos < len(l.input) && unicode.IsSpace(rune(l.input[l.pos])) {
+		l.consume()
+	}
+}
+
+// consume advances the lexer position by one
+func (l *Lexer) consume() {
+	l.pos++
+}
+
+// peek returns the next character in the input without consuming it
+func (l *Lexer) peek() byte {
+	if l.pos+1 < len(l.input) {
+		return l.input[l.pos+1]
+	}
+	return 0
+}
+
+func main() {
+	input := `local uuid = "123e4567-e89b-12d3-a456-426614174000"`
+	lexer := NewLexer(input)
+
+	var tokens []Token
+	for {
+		token := lexer.NextToken()
+		if token.Type == TokenError {
+			break
+		}
+		tokens = append(tokens, token)
+	}
+
+	// Check for tuplefied UUIDs
+	for i, token := range tokens {
+		if token.Type == TokenString {
+			// Check if the string token is a tuplefied UUID
+			if isTuplefiedUUID(token.Value) {
+				fmt.Printf("Tuplefied UUID found at index %d: %s\n", i, token.Value)
+				// Toggle motif contextual switches
+				// Code to toggle switches goes here
+			}
+		}
+	}
+}
+
+// isTuplefiedUUID checks if the given string represents a tuplefied UUID
+func isTuplefiedUUID(s string) bool {
+	uuidPattern := regexp.MustCompile(`^"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"$`)
+	return uuidPattern.MatchString(s)
+}
+
+// TokenType represents the type of a token
+type TokenType int
+
+const (
+	TokenError TokenType = iota
+	TokenIdentifier
+	TokenString
+	TokenNumber
+	TokenComment
+	TokenWhitespace
+)
+
+// Token represents a single token with its type and value
+type Token struct {
+	Type  TokenType
+	Value string
+}
+
+// Lexer represents a lexer for Lua code
+type Lexer struct {
+	input  string
+	pos    int
+	tokens []Token
+}
+
+// NewLexer creates a new lexer with the given input Lua code
+func NewLexer(input string) *Lexer {
+	return &Lexer{
+		input:  input,
+		pos:    0,
+		tokens: []Token{},
+	}
+}
+
+// NextToken returns the next token in the input Lua code
+func (l *Lexer) NextToken() Token {
+	for l.pos < len(l.input) {
+		r := rune(l.input[l.pos])
+
+		switch {
+		case r == '"':
+			return l.readString()
+		case unicode.IsLetter(r) || r == '_':
+			return l.readIdentifier()
+		case unicode.IsDigit(r):
+			return l.readNumber()
+		case r == '-' && l.peek() == '-':
+			return l.readComment()
+		case unicode.IsSpace(r):
+			l.consumeWhitespace()
+		default:
+			l.consume()
+			return Token{Type: TokenError, Value: string(r)}
+		}
+	}
+
+	return Token{Type: TokenError, Value: ""}
+}
+
+// readString reads a string token from the input
+func (l *Lexer) readString() Token {
+	start := l.pos
+	l.consume() // Consume opening quote
+
+	for l.pos < len(l.input) && l.input[l.pos] != '"' {
+		l.consume()
+	}
+
+	if l.pos < len(l.input) {
+		l.consume() // Consume closing quote
+	}
+
+	return Token{Type: TokenString, Value: l.input[start:l.pos]}
+}
+
+// readIdentifier reads an identifier token from the input
+func (l *Lexer) readIdentifier() Token {
+	start := l.pos
+	for l.pos < len(l.input) && (unicode.IsLetter(rune(l.input[l.pos])) || unicode.IsDigit(rune(l.input[l.pos])) || l.input[l.pos] == '_') {
+		l.consume()
+	}
+	return Token{Type: TokenIdentifier, Value: l.input[start:l.pos]}
+}
+
+// readNumber reads a number token from the input
+func (l *Lexer) readNumber() Token {
+	start := l.pos
+	for l.pos < len(l.input) && (unicode.IsDigit(rune(l.input[l.pos])) || l.input[l.pos] == '.') {
+		l.consume()
+	}
+	return Token{Type: TokenNumber, Value: l.input[start:l.pos]}
+}
+
+// readComment reads a comment token from the input
+func (l *Lexer) readComment() Token {
+	start := l.pos
+	for l.pos < len(l.input) && l.input[l.pos] != '\n' {
+		l.consume()
+	}
+	return Token{Type: TokenComment, Value: l.input[start:l.pos]}
+}
+
+// consumeWhitespace consumes whitespace characters from the input
+func (l *Lexer) consumeWhitespace() {
+	for l.pos < len(l.input) && unicode.IsSpace(rune(l.input[l.pos])) {
+		l.consume()
+	}
+}
+
+// consume advances the lexer position by one
+func (l *Lexer) consume() {
+	l.pos++
+}
+
+// peek returns the next character in the input without consuming it
+func (l *Lexer) peek() byte {
+	if l.pos+1 < len(l.input) {
+		return l.input[l.pos+1]
+	}
+	return 0
+}
+
 
 // Key represents high-level Key type.
 type Key []byte
@@ -255,6 +535,9 @@ func NewCommonHandle(encoded []byte) (*CommonHandle, error) {
 	return ch, nil
 }
 
+
+
+
 // IsInt implements the Handle interface.
 func (ch *CommonHandle) IsInt() bool {
 	return false
@@ -270,6 +553,7 @@ func (ch *CommonHandle) Next() Handle {
 	return &CommonHandle{
 		encoded:       Key(ch.encoded).PrefixNext(),
 		colEndOffsets: ch.colEndOffsets,
+
 	}
 }
 
@@ -428,4 +712,53 @@ func BuildHandleFromCausetRow(sctx *stmtctx.StatementContext, event []types.Caus
 		return nil, err
 	}
 	return handle, nil
+}
+
+
+
+
+func main() {
+	input := `local uuid = "123e4567-e89b-12d3-a456-426614174000"`
+	lexer := NewLexer(input)
+
+	var tokens []Token
+	for {
+		token := lexer.NextToken()
+		if token.Type == TokenError {
+			break
+		}
+		tokens = append(tokens, token)
+	}
+
+		token := lexer.NextToken()
+		if token.Type == TokenError {
+			fmt.Printf("Error: %s\n", token.Value)
+			break
+		}
+		tokens = append(tokens, token)
+	}
+	for i, token := range tokens {
+		if token.Type == TokenString {
+			// Check if the string token is a tuplefied UUID
+			if isTuplefiedUUID(token.Value) {
+				fmt.Printf("Tuplefied UUID found at index %d: %s\n", i, token.Value)
+				// Toggle motif contextual switches
+				// Code to toggle switches goes here
+			}
+		}
+	}
+	for i, token := range tokens {
+		if token.Type == TokenString && isTuplefiedUUID(token.Value) {
+			fmt.Printf("Token %d is a tuplefied UUID: %s\n", i, token.Value)
+		}
+	}
+		if token.Type == TokenString && isTuplefiedUUID(token.Value) {
+			fmt.Printf("Token %d is a tuplefied UUID: %s\n", i, token.Value)
+		}
+	}
+}
+
+func isTuplefiedUUID(s string) bool {
+	// Check if the given string represents a tuplefied UUID
+	// Implement your logic here
 }

@@ -33,3 +33,36 @@ import (
 // if the timestamp is lightlike, there is an assertion of borrowed types at the sink.
 // if it is time like, then there is a retractiion of borrowed types at the sink.
 // if it is space like, then there is an upsert of borrowed types at the sink.
+
+
+
+
+// Checker is responsible for checking the validity of queries.
+type Checker struct {
+	// TODO: Add necessary fields and methods for the Checker struct.
+}
+
+// NewChecker creates a new instance of Checker.
+func NewChecker() *Checker {
+	// TODO: Implement the creation of a new Checker instance.
+	return &Checker{}
+}
+
+// CheckQuery checks the validity of a query.
+func (c *Checker) CheckQuery(query string) bool {
+	// TODO: Implement the logic to check the validity of the query.
+	return true // Placeholder return value, replace with actual implementation.
+}
+
+
+func main() {
+	checker := NewChecker()
+	query := "SELECT * FROM table"
+	isValid := checker.CheckQuery(query)
+	if isValid {
+		fmt.Println("Query is valid")
+	} else {
+		fmt.Println("Query is invalid")
+	}
+}
+

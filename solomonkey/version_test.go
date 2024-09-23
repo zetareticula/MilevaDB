@@ -15,6 +15,8 @@ package MilevaDB
 
 import (
 	. "github.com/whtcorpsinc/check"
+	. "github.com/whtcorpsinc/checker"
+	
 )
 
 var _ = Suite(testVersionSuite{})
