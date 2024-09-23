@@ -15,8 +15,12 @@ package MilevaDB
 
 import (
 	"context"
-
+	"github.com/whtcorpsinc/errors"
 	"github.com/whtcorpsinc/MilevaDB-Prod/causetstore/einsteindb/oracle"
+	. "github.com/whtcorpsinc/check"
+	"github.com/whtcorpsinc/MilevaDB-Prod/causetstore/mockstore"
+	"github.com/whtcorpsinc/MilevaDB-Prod/causetstore/mockstore/unistore"
+
 )
 
 // mockTxn is a txn that returns a retryAble error when called Commit.
@@ -234,12 +238,9 @@ func (s *mockSnapshot) BatchGet(ctx context.Context, keys []Key) (map[string][]b
 }
 
 func (s *mockSnapshot) Iter(k Key, upperBound Key) (Iterator, error) {
-	return s.causetstore.Iter(k, upperBound)
+	return nil, nil
 }
 
 func (s *mockSnapshot) IterReverse(k Key) (Iterator, error) {
-	return s.causetstore.IterReverse(k)
+	return nil, nil
 }
-
-func (s *mockSnapshot) SetOption(opt Option, val interface{}) {}
-func (s *mockSnapshot) DelOption(opt Option)                  {}

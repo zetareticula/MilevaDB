@@ -19,13 +19,18 @@ import (
 	"go/types"
 	_ "sync"
 	_ "time"
-
 	"bytes"
 	"context"
 	"io"
 	_ "sync"
 	_ "time"
+	"github.com/whtcorpsinc/errors"
+	"github.com/whtcorpsinc/milevadb/causetstore/mockstore"
+	"github.com/whtcorpsinc/milevadb/causetstore/mockstore/unistore"
+
 )
+
+// Iterator is the interface for iterating key-value pairs in causetstore.
 
 type Iterator interface {
 	Next() bool
@@ -36,6 +41,8 @@ type Iterator interface {
 	Error() error
 
 }
+
+
 
 // Next A Snapshot is a read-only DB snapshot. It can be used for iterating
 type Next func() bool // Next
